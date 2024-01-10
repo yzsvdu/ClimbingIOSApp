@@ -10,7 +10,11 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
          self.pickImage()
 //        self.fetchPoseData()
     }
-
+    
+    @IBAction func newImageButton(_ sender: Any) {
+        self.pickImage()
+    }
+    
     // Function to pick an image from the photo library
     func pickImage() {
         let imagePicker = UIImagePickerController()

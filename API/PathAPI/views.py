@@ -119,7 +119,7 @@ def process_image(image):
     #         cv2.line(frame, points[partA], points[partB], (0, 255, 255), 2)
     #         cv2.circle(frame, points[partA], 8, (0, 0, 255), thickness=-1, lineType=cv2.FILLED)
 
-    # cv2.imwrite('uploaded_images/Output-Keypoints.jpg', frameCopy)
+    cv2.imwrite('uploaded_images/Output-Keypoints.jpg', frameCopy)
     # cv2.imwrite('uploaded_images/Output-Skeleton.jpg', frame)
     #
     # cv2.waitKey(0)
