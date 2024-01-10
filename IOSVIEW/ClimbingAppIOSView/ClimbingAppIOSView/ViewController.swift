@@ -7,8 +7,8 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     override func viewDidLoad() {
         super.viewDidLoad()
         // Call the image picker directly in viewDidLoad if needed
-//         self.pickImage()
-        self.fetchPoseData()
+         self.pickImage()
+//        self.fetchPoseData()
     }
 
     // Function to pick an image from the photo library
@@ -41,17 +41,16 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
             // Add any additional parameters if needed
             // multipartFormData.append("value".data(using: .utf8)!, withName: "key")
         }, to: endpointURL, headers: ["X-CSRFToken": "ADD CSRF HERE IN FUTURE"])
-        .responseJSON { response in
+        .responseDecodable(of: PoseDTO.self) { response in
             switch response.result {
-            case .success(let value):
-                if let json = value as? [String: Any], let message = json["message"] as? String {
-                    print("Response: \(message)")
-                } else {
-                    print("Invalid response format")
+            case .success(let poseDTO):
+                print("Pose Data:")
+                
+                for (key, value) in poseDTO.attributes {
+                    print("\(key): \(value)")
                 }
-
             case .failure(let error):
-                print("Error: \(error)")
+                print("Error fetching Pose data: \(error.localizedDescription)")
             }
         }
     }
