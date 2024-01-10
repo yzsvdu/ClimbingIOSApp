@@ -7,7 +7,8 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     override func viewDidLoad() {
         super.viewDidLoad()
         // Call the image picker directly in viewDidLoad if needed
-         self.pickImage()
+//         self.pickImage()
+        self.fetchPoseData()
     }
 
     // Function to pick an image from the photo library
@@ -54,4 +55,21 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
             }
         }
     }
+    
+    func fetchPoseData() {
+        let url = "http://localhost:8000/api/zero_pose"
+
+        AF.request(url).responseDecodable(of: PoseDTO.self) { response in
+            switch response.result {
+            case .success(let poseDTO):
+                print("Pose Data:")
+                for (key, value) in poseDTO.attributes {
+                    print("\(key): \(value)")
+                }
+            case .failure(let error):
+                print("Error fetching Pose data: \(error.localizedDescription)")
+            }
+        }
+    }
+    
 }

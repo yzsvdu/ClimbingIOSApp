@@ -6,3 +6,10 @@
 //
 
 import Foundation
+
+struct PoseDTO: Codable {
+    let attributes: [String: [Int]]
+}
+
+
+
