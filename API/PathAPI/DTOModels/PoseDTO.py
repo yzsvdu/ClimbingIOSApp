@@ -1,0 +1,25 @@
+class PoseDTO:
+    def __init__(self, nose, neck, right_shoulder, right_elbow, right_wrist,
+                 left_shoulder, left_elbow, left_wrist, right_hip, right_knee,
+                 right_ankle, left_hip, left_knee, left_ankle, right_eye,
+                 left_eye, right_ear, left_ear):
+        self.attributes = {
+            "nose": nose,
+            "neck": neck,
+            "right_shoulder": right_shoulder,
+            "right_elbow": right_elbow,
+            "right_wrist": right_wrist,
+            "left_shoulder": left_shoulder,
+            "left_elbow": left_elbow,
+            "left_wrist": left_wrist,
+            "right_hip": right_hip,
+            "right_knee": right_knee,
+            "right_ankle": right_ankle,
+            "left_hip": left_hip,
+            "left_knee": left_knee,
+            "left_ankle": left_ankle,
+            "right_eye": right_eye,
+            "left_eye": left_eye,
+            "right_ear": right_ear,
+            "left_ear": left_ear,
+        }
