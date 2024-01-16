@@ -32,6 +32,7 @@ xcuserdata/
 DerivedData/
 .idea/
 *.hmap
+*.xcuserstate
 
 # macOS
 .DS_Store
