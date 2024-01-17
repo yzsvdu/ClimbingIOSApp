@@ -25,7 +25,6 @@ def upload_image(request):
         return JsonResponse({'message': 'Invalid request method or no image provided'}, status=400)
 
 
-
 def process_image(image):
     # parser = argparse.ArgumentParser(description='Run keypoint detection')
     # parser.add_argument("--device", default="cpu", help="Device to inference on")
@@ -54,7 +53,7 @@ def process_image(image):
     inWidth = 368
     inHeight = 368
     inpBlob = cv2.dnn.blobFromImage(frame, 1.0 / 255, (inWidth, inHeight),
-                          (0, 0, 0), swapRB=False, crop=False)
+                                    (0, 0, 0), swapRB=False, crop=False)
     net.setInput(inpBlob)
     output = net.forward()
     H = output.shape[2]
