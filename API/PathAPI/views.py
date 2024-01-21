@@ -1,127 +1,112 @@
 # views.py
+import json
+import os
+import uuid
+
 from django.http import JsonResponse
+from django.http import HttpResponseNotFound, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
 import cv2
 import numpy as np
-from .DTOModels.PoseDTO import PoseDTO
-import argparse
-
+from detectron2.utils.visualizer import Visualizer
+from .apps import PathAPIConfig
+from detectron2.data import MetadataCatalog
 
 @csrf_exempt
 def upload_image(request):
     if request.method == 'POST' and request.FILES['image']:
+        # Generate a unique folder name using UUID
+        unique_folder_name = str(uuid.uuid4())
+        unique_folder_path = os.path.join("processed_requests", unique_folder_name)
+        os.makedirs(unique_folder_path, exist_ok=True)
+
         image = request.FILES['image']
-        # You can process the image here (e.g., save it to a specific location, perform image processing, etc.)
-        filename = default_storage.save('uploaded_images/' + image.name, ContentFile(image.read()))
-        pose_instance = process_image(filename)
-        pose_dict = {
-            "attributes": pose_instance.attributes
-        }
-        # Return the JSON response
-        return JsonResponse(pose_dict)
+        content = image.read()
+        img_np = np.frombuffer(content, dtype=np.uint8)
+        img = cv2.imdecode(img_np, cv2.IMREAD_COLOR)
+        outputs = PathAPIConfig.predictor(img)
+        instances = outputs["instances"].to("cpu")
+
+        # Filter out holds below 80% confidence
+        confidence_threshold = 0.8
+        selected_indices = instances.scores >= confidence_threshold
+        filtered_instances = instances[selected_indices]
+
+        MetadataCatalog.get("meta").thing_classes = ["hold", "volume"]
+        metadata = MetadataCatalog.get("meta")
+
+        # Visualize the filtered holds
+        v = Visualizer(
+            img[:, :, ::-1],
+            metadata=metadata
+        )
+
+        out_predictions = v.draw_instance_predictions(filtered_instances)
+        img_holds = out_predictions.get_image()
+
+        # Save the image with the same size and resolution as the original image
+        output_file_path = os.path.join(unique_folder_path, "detected_holds.png")
+        cv2.imwrite(output_file_path, img_holds)
+
+        # Save binary masks as separate image files within the unique folder
+        masks_folder_path = os.path.join(unique_folder_path, "binary_masks")
+        os.makedirs(masks_folder_path, exist_ok=True)
+
+        for i, binary_mask in enumerate(instances.pred_masks.numpy()):
+            mask_file_path = os.path.join(masks_folder_path, f"binary_mask_{i}.png")
+            cv2.imwrite(mask_file_path, binary_mask.astype(np.uint8) * 255)
+
+        boxes = filtered_instances.pred_boxes.tensor.numpy()
+        instances = []
+        for box in boxes:
+            box_data = {key: float(value) for key, value in zip(['x_min', 'y_min', 'x_max', 'y_max'], box)}
+            instance_data = {'box': box_data}
+            instances.append(instance_data)
+
+        response_data = {'instances': instances, 'folder_path': unique_folder_name}
+        return JsonResponse(response_data)
+
     else:
         return JsonResponse({'message': 'Invalid request method or no image provided'}, status=400)
 
 
-def process_image(image):
-    # parser = argparse.ArgumentParser(description='Run keypoint detection')
-    # parser.add_argument("--device", default="cpu", help="Device to inference on")
-    # parser.add_argument("--image_file", default="single.jpeg", help="Input image")
+def get_binary_masks(request):
+    unique_folder_name = request.GET.get('folder_path', None)
 
-    # args = parser.parse_args()
-    protoFile = "PathAPI/pose/coco/pose_deploy_linevec.prototxt"
-    weightsFile = "PathAPI/pose/coco/pose_iter_440000.caffemodel"
-    nPoints = 18
-    POSE_PAIRS = [[1, 0], [1, 2], [1, 5], [2, 3], [3, 4], [5, 6], [6, 7], [1, 8], [8, 9], [9, 10], [1, 11], [11, 12],
-                  [12, 13], [0, 14], [0, 15], [14, 16], [15, 17]]
-    frame = cv2.imread(image)
-    frameCopy = np.copy(frame)
-    frameWidth = frame.shape[1]
-    frameHeight = frame.shape[0]
-    threshold = 0.1
-    net = cv2.dnn.readNetFromCaffe(protoFile, weightsFile)
-    # if args.device == "cpu":
-    #     net.setPreferableBackend(cv2.dnn.DNN_TARGET_CPU)
-    #     print("Using CPU device")
-    # elif args.device == "gpu":
-    #     net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
-    #     net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
-    #     print("Using GPU device")
+    if unique_folder_name:
+        masks_folder_path = os.path.join("processed_requests", unique_folder_name, "binary_masks")
 
-    inWidth = 368
-    inHeight = 368
-    inpBlob = cv2.dnn.blobFromImage(frame, 1.0 / 255, (inWidth, inHeight),
-                                    (0, 0, 0), swapRB=False, crop=False)
-    net.setInput(inpBlob)
-    output = net.forward()
-    H = output.shape[2]
-    W = output.shape[3]
+        if os.path.exists(masks_folder_path):
+            mask_urls = []
 
-    # Empty list to store the detected keypoints
-    points = []
+            for filename in os.listdir(masks_folder_path):
+                if filename.endswith(".png"):
+                    mask_url = request.build_absolute_uri(os.path.join(masks_folder_path, filename))
+                    mask_urls.append(mask_url)
 
-    for i in range(nPoints):
-        # confidence map of corresponding body's part.
-        probMap = output[0, i, :, :]
-
-        # Find global maxima of the probMap.
-        minVal, prob, minLoc, point = cv2.minMaxLoc(probMap)
-
-        # Scale the point to fit on the original image
-        x = (frameWidth * point[0]) / W
-        y = (frameHeight * point[1]) / H
-
-        if prob > threshold:
-            cv2.circle(frameCopy, (int(x), int(y)), 8, (0, 255, 255), thickness=-1, lineType=cv2.FILLED)
-            cv2.putText(frameCopy, "{}".format(i), (int(x), int(y)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2,
-                        lineType=cv2.LINE_AA)
-
-            # Add the point to the list if the probability is greater than the threshold
-            points.append((int(x), int(y)))
+            response_data = {'urls': mask_urls}
+            return JsonResponse(response_data)
         else:
-            points.append((-1, -1))
+            return JsonResponse({'message': 'Binary masks folder not found'}, status=404)
+    else:
+        return JsonResponse({'message': 'Unique folder name not provided in the request'}, status=400)
 
-    # TESTING print out the right wrist:
-    # print("RIGHT WRIST = ", points[4][0], points[4][1])
 
-    # create PoseDTO object
-    pose_instance = PoseDTO(
-        nose=[points[0][0], points[0][1]],
-        neck=[points[1][0], points[1][1]],
-        right_shoulder=[points[2][0], points[2][1]],
-        right_elbow=[points[3][0], points[3][1]],
-        right_wrist=[points[4][0], points[4][1]],
-        left_shoulder=[points[5][0], points[5][1]],
-        left_elbow=[points[6][0], points[6][1]],
-        left_wrist=[points[7][0], points[7][1]],
-        right_hip=[points[8][0], points[8][1]],
-        right_knee=[points[9][0], points[9][1]],
-        right_ankle=[points[10][0], points[10][1]],
-        left_hip=[points[11][0], points[11][1]],
-        left_knee=[points[12][0], points[12][1]],
-        left_ankle=[points[13][0], points[13][1]],
-        right_eye=[points[14][0], points[14][1]],
-        left_eye=[points[15][0], points[15][1]],
-        right_ear=[points[16][0], points[16][1]],
-        left_ear=[points[17][0], points[17][1]]
+def get_single_mask(request):
+    folder_path = request.GET.get('folder_path', None)
+    mask_number = request.GET.get('mask_number', None)
 
-    )
+    if folder_path and mask_number:
+        masks_folder_path = os.path.join("processed_requests", folder_path, "binary_masks")
+        mask_filename = f"binary_mask_{mask_number}.png"
+        mask_file_path = os.path.join(masks_folder_path, mask_filename)
 
-    # Draw Skeleton
-    # for pair in POSE_PAIRS:
-    #     partA = pair[0]
-    #     partB = pair[1]
-    #
-    #     if points[partA] and points[partB]:
-    #         cv2.line(frame, points[partA], points[partB], (0, 255, 255), 2)
-    #         cv2.circle(frame, points[partA], 8, (0, 0, 255), thickness=-1, lineType=cv2.FILLED)
-
-    cv2.imwrite('uploaded_images/Output-Keypoints.jpg', frameCopy)
-    # cv2.imwrite('uploaded_images/Output-Skeleton.jpg', frame)
-    #
-    # cv2.waitKey(0)
-
-    # Convert PoseDTO instance to a dictionary
-    return pose_instance;
+        if os.path.exists(mask_file_path):
+            with open(mask_file_path, 'rb') as file:
+                file_content = file.read()
+                response = HttpResponse(file_content, content_type='image/png')
+                return response
+        else:
+            return HttpResponseNotFound('Mask not found')
+    else:
+        return HttpResponseNotFound('Folder path or mask number not provided in the request')

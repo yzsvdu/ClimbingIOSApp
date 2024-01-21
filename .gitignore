@@ -210,3 +210,6 @@ $RECYCLE.BIN/
 *.log
 
 
+processed_requests
+*.pth
+*.pt
