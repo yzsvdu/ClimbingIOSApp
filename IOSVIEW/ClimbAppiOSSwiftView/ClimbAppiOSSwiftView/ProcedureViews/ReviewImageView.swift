@@ -72,20 +72,19 @@ struct ReviewImageView: View {
     }
     
     
-    func retrieveAllMasks(folder_path: String, maskUrls: MaskURLs) async throws -> [UIImage] {
-        var retrievedMasks: [UIImage] = []
+    func retrieveAllMasks(predictedHolds: PredictedHolds) async throws -> Masks {
+        var retrievedMasks: [Mask] = []
 
-        for (index, _) in maskUrls.maskURLs.enumerated() {
+        for (index, instance) in predictedHolds.instances.enumerated() {
             do {
-                let maskImage = try await retrieveMaskFromUrl(folder_path: folder_path, mask_id: index)
-                retrievedMasks.append(maskImage)
+                let maskImage = try await retrieveMaskFromUrl(folder_path: predictedHolds.folder_path, mask_id: instance.maskId)
+                retrievedMasks.append(Mask(id: instance.maskId, image: maskImage))
             } catch {
                 print("Error retrieving mask for index \(index): \(error)")
-                // Handle the error if needed
             }
         }
 
-        return retrievedMasks
+        return Masks(masks: retrievedMasks)
     }
     
     func processImage() async throws {
@@ -94,19 +93,17 @@ struct ReviewImageView: View {
                return
         }
         let predictedHolds = try await uploadImage(imageData: imageData)
-        let maskUrls = try await retrieveMaskUrls(folder_path: predictedHolds.folder_path)
-        let masks = try await retrieveAllMasks(folder_path: predictedHolds.folder_path, maskUrls: maskUrls)
+        let predictedMasks = try await retrieveAllMasks(predictedHolds: predictedHolds)
 
         // Update the state with the processed images
         self.predictedHolds = predictedHolds
-        self.predictedMasks = Masks(masks: masks)
-        print(self.predictedMasks.masks.count)
+        self.predictedMasks = predictedMasks
         self.proccessedImage = true
     }
     
     var body: some View {
         VStack(spacing:0){
-            PannableImageView(image: image, showOverlay: false, predictedHolds: nil, predictedMasks: Masks(masks: []))
+            PannableImageView(image: image, showMasks: true, showOverlay: false, predictedHolds: PredictedHolds(instances: [], folder_path: ""), predictedMasks: Masks(masks: []))
         }.navigationBarItems(
             trailing: Button(action: {
                 Task {

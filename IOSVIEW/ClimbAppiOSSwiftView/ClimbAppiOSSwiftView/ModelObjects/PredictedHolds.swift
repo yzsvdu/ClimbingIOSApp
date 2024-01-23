@@ -24,9 +24,11 @@ struct InstanceData: Codable, Identifiable {
     var id = UUID()
 
     let box: BoundingBox
+    let maskId: Int
 
     private enum CodingKeys: String, CodingKey {
         case box
+        case maskId = "mask_number"
     }
 }
 

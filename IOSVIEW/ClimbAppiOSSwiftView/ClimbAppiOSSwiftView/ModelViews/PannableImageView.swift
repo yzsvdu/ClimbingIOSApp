@@ -9,86 +9,79 @@ import SwiftUI
 
 
 struct PannableImageView: View {
-    @State private var offset: CGSize = .zero
-    @State private var scale: CGFloat = 1
-    @State private var previousScale: CGFloat = 1.0
     @State private var proccessedImage: Bool = false
+    @State private var startHolds: [Int] = []
     
     let image: UIImage
+    let showMasks: Bool
     let showOverlay: Bool
-    let predictedHolds: PredictedHolds?
+    let predictedHolds: PredictedHolds
     let predictedMasks: Masks
     
+
     var body: some View {
-            ScrollView([.horizontal, .vertical]) {
-                ZStack {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .scaleEffect(scale)
-                        .offset(offset)
-                        .gesture(
-                            MagnificationGesture()
-                                .onChanged { value in
-                                    let delta = value / self.previousScale
-                                    self.previousScale = value
-                                    self.scale *= delta
-                                }
-                                .onEnded { _ in
-                                    self.previousScale = 1.0
-                                }
-                        )
-                        .gesture(
-                            DragGesture()
-                                .onChanged { value in
-                                    self.offset.width += value.translation.width
-                                    self.offset.height += value.translation.height
-                                }
-                        )
-                        .overlay(
-                            Group {
-                                if showOverlay, let instances = predictedHolds?.instances {
-                                    ForEach(instances) { instance in
-                                        let width = CGFloat(instance.box.xMax - instance.box.xMin) * self.scale
-                                        let height = CGFloat(instance.box.yMax - instance.box.yMin) * self.scale
-                                        
-                                        let xOffset = -CGFloat(image.size.width / 2 + width / 2)
-                                        let yOffset = -CGFloat(image.size.height / 2 + height / 2)
-                                        Rectangle()
-                                            .stroke(Color.red, lineWidth: 2)
-                                            .frame(
-                                                width: width,
-                                                height: height
-                                            )
-                                            .offset(
-                                                x: instance.box.xMax + xOffset,
-                                                y: instance.box.yMax + yOffset
-                                            )
-                                    }
-                                    
-                                }
-                                                
-                            }
-                        )
-                    displayMasks(masks: predictedMasks.masks)
-                    
+        ScrollView([.horizontal, .vertical], showsIndicators: false) {
+            ZStack {
+                Image(uiImage: image)
+                if showOverlay {
+                    Rectangle()
+                        .foregroundColor(Color.black.opacity(0.84))
+                        .frame(width: image.size.width, height: image.size.height)
                 }
-                
+                if showMasks {
+                    displayMasks(masks: predictedMasks.masks)
+                }
+                if showOverlay {
+                    displayBoundingBoxes(instances: predictedHolds.instances)
+                }
             }
-            .padding(.top, 1)
-            .preferredColorScheme(ColorScheme.dark)
         }
+        .padding(.top, 1)
+        .preferredColorScheme(ColorScheme.dark)
+    }
     
-    func displayMasks(masks: [UIImage]) -> some View {
-        ForEach(masks, id: \.self) { mask in
-            Image(uiImage: overlayImage(image: image, mask: mask, color: UIColor.red))
+    func displayMasks(masks: [Mask]) -> some View {
+        ForEach(masks, id: \.id) { mask in
+            Image(uiImage: overlayImage(image: image, mask: mask.image))
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .opacity(0.5)
+                .opacity(startHolds.contains(mask.id) ? 1 : 0.6)
         }
     }
     
-    func overlayImage(image: UIImage, mask: UIImage, color: UIColor) -> UIImage {
+    func displayBoundingBoxes(instances: [InstanceData]) -> some View {
+        ForEach(instances) { instance in
+            let width = CGFloat(instance.box.xMax - instance.box.xMin)
+            let height = CGFloat(instance.box.yMax - instance.box.yMin)
+            
+            let xOffset = -CGFloat(image.size.width / 2 + width / 2)
+            let yOffset = -CGFloat(image.size.height / 2 + height / 2)
+            
+            Rectangle()
+                .fill(Color.clear)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if let index = startHolds.firstIndex(of: instance.maskId) {
+                        startHolds.remove(at: index)
+                    } else {
+                        if startHolds.count == 2 {
+                            startHolds.removeFirst()
+                        }
+                        startHolds.append(instance.maskId)
+                    }
+                }
+                .frame(
+                    width: width,
+                    height: height
+                )
+                .offset(
+                    x: instance.box.xMax + xOffset,
+                    y: instance.box.yMax + yOffset
+                )
+        }
+    }
+    
+    func overlayImage(image: UIImage, mask: UIImage) -> UIImage {
         guard let imageReference = image.cgImage, let maskReference = mask.cgImage else {
             return image
         }
@@ -110,9 +103,8 @@ struct PannableImageView: View {
         // Apply the mask
         context.clip(to: CGRect(x: 0, y: 0, width: width, height: height), mask: maskReference)
 
-        // Fill the masked area with the specified color
-        context.setFillColor(color.cgColor)
-        context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+        // Draw the reference image within the masked area
+        context.draw(imageReference, in: CGRect(x: 0, y: 0, width: width, height: height))
 
         // Create a new CGImage from the context
         guard let newCGImage = context.makeImage() else {
@@ -127,10 +119,17 @@ struct PannableImageView: View {
 
 
 
-struct PannableImageView_Previews: PreviewProvider {
-    static var previews: some View {
-        let dummyImage = UIImage(imageLiteralResourceName: "original_image")
-        let dummyPredictedHolds = PredictedHolds(instances: [], folder_path: "")
-        return PannableImageView(image: dummyImage, showOverlay: true, predictedHolds: dummyPredictedHolds, predictedMasks: Masks(masks: []))
-    }
-}
+//struct PannableImageView_Previews: PreviewProvider {
+//    static var previews: some View {
+//        let dummyImage = UIImage(imageLiteralResourceName: "original_image")
+//        let maskImage = UIImage(imageLiteralResourceName: "binary_mask_0")
+//        let maskImage1 = UIImage(imageLiteralResourceName: "binary_mask_1")
+//        let boundingBox1 = BoundingBox(xMin: 124.63375091552734, yMin: 68.79485321044922, xMax: 193.54209899902344, yMax: 152.90591430664062)
+//        let boundingBox2 = BoundingBox(xMin: 276.62255859375, yMin: 88.37931823730469, xMax: 341.577880859375, yMax: 148.417236328125)
+//        let instanceData1 = InstanceData(box: boundingBox1, maskId: 0)
+//        let instanceData2 = InstanceData(box: boundingBox2, maskId: 1)
+//        let dummyPredictedHolds = PredictedHolds(instances: [instanceData1, instanceData2], folder_path: "")
+//
+//        return PannableImageView(image: dummyImage, showMasks: true, showOverlay: true, predictedHolds: dummyPredictedHolds, predictedMasks: Masks(masks: [maskImage, maskImage1]))
+//    }
+//}

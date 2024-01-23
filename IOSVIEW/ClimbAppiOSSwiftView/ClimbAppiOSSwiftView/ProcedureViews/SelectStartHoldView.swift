@@ -8,20 +8,29 @@
 import SwiftUI
 
 struct SelectStartHoldView: View {
-    
+            
     let image: UIImage
     let predicatedHolds: PredictedHolds
     let predictedMasks: Masks
     
     var body: some View {
         VStack {
-            PannableImageView(image: image, showOverlay: true, predictedHolds: predicatedHolds, predictedMasks: predictedMasks)
-        }.navigationTitle("Select Starting Hold")
+            PannableImageView(image: image, showMasks: true, showOverlay: true, predictedHolds: predicatedHolds, predictedMasks: predictedMasks)
+        }
+        .navigationTitle("Select Starting Holds")
+        .navigationBarItems(
+            trailing: Button(action: {
+               
+            }) {
+                Text("Start")
+            }
+        )
+        
     }
 }
 
 struct UploadImageStepView_Previews: PreviewProvider {
     static var previews: some View {
-        SelectStartHoldView(image: UIImage(imageLiteralResourceName: "IMG_3502"), predicatedHolds: PredictedHolds(instances: [], folder_path: ""), predictedMasks: Masks(masks: []))
+        SelectStartHoldView(image: UIImage(imageLiteralResourceName: "original_image"), predicatedHolds: PredictedHolds(instances: [], folder_path: ""), predictedMasks: Masks(masks: []))
     }
 }

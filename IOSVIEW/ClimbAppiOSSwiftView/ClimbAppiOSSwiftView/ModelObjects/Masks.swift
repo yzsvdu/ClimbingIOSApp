@@ -8,7 +8,12 @@
 import Foundation
 import UIKit
 
+struct Mask {
+    let id: Int
+    let image: UIImage
+}
+
 struct Masks {
-    let masks: [UIImage]
+    let masks: [Mask]
     
 }

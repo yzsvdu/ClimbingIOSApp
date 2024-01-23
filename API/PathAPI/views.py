@@ -1,4 +1,4 @@
-# views.py
+ # views.py
 import json
 import os
 import uuid
@@ -21,7 +21,13 @@ def upload_image(request):
         os.makedirs(unique_folder_path, exist_ok=True)
 
         image = request.FILES['image']
+
         content = image.read()
+
+        original_image_path = os.path.join(unique_folder_path, "original_image.jpg")
+        with open(original_image_path, 'wb') as original_image_file:
+            original_image_file.write(content)
+
         img_np = np.frombuffer(content, dtype=np.uint8)
         img = cv2.imdecode(img_np, cv2.IMREAD_COLOR)
         outputs = PathAPIConfig.predictor(img)
@@ -52,15 +58,15 @@ def upload_image(request):
         masks_folder_path = os.path.join(unique_folder_path, "binary_masks")
         os.makedirs(masks_folder_path, exist_ok=True)
 
-        for i, binary_mask in enumerate(instances.pred_masks.numpy()):
+        instances = []
+
+        for i in range(len(filtered_instances)):
+            binary_mask = filtered_instances.pred_masks.numpy()[i]
             mask_file_path = os.path.join(masks_folder_path, f"binary_mask_{i}.png")
             cv2.imwrite(mask_file_path, binary_mask.astype(np.uint8) * 255)
 
-        boxes = filtered_instances.pred_boxes.tensor.numpy()
-        instances = []
-        for box in boxes:
-            box_data = {key: float(value) for key, value in zip(['x_min', 'y_min', 'x_max', 'y_max'], box)}
-            instance_data = {'box': box_data}
+            box_data = {key: float(value) for key, value in zip(['x_min', 'y_min', 'x_max', 'y_max'], filtered_instances.pred_boxes.tensor.numpy()[i])}
+            instance_data = {'box': box_data, 'mask_number': i}
             instances.append(instance_data)
 
         response_data = {'instances': instances, 'folder_path': unique_folder_name}
