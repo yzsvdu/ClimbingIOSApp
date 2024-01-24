@@ -1,8 +1,12 @@
  # views.py
 import json
 import os
+
+import torch
+import random
 import uuid
 
+from collections import defaultdict
 from django.http import JsonResponse
 from django.http import HttpResponseNotFound, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -11,6 +15,8 @@ import numpy as np
 from detectron2.utils.visualizer import Visualizer
 from .apps import PathAPIConfig
 from detectron2.data import MetadataCatalog
+
+import matplotlib.pyplot as plt
 
 @csrf_exempt
 def upload_image(request):
@@ -37,6 +43,8 @@ def upload_image(request):
         confidence_threshold = 0.8
         selected_indices = instances.scores >= confidence_threshold
         filtered_instances = instances[selected_indices]
+
+        getRoutes(filtered_instances, img)
 
         MetadataCatalog.get("meta").thing_classes = ["hold", "volume"]
         metadata = MetadataCatalog.get("meta")
@@ -116,3 +124,48 @@ def get_single_mask(request):
             return HttpResponseNotFound('Mask not found')
     else:
         return HttpResponseNotFound('Folder path or mask number not provided in the request')
+
+
+def getRoutes(instances, image):
+    routes_dict = defaultdict(list)
+    routes_dict[0] = [random.randint(0, len(instances)-1)]
+
+    for hold_index in range(len(instances)):
+        for route_id, holds in routes_dict.items():
+            dists = []
+            for route_hold_index in holds:
+                with torch.no_grad():
+                    input1 = instance_to_hold(instances[hold_index], image, PathAPIConfig.triplet_model.preprocess, PathAPIConfig.device).unsqueeze(0)
+                    input2 = instance_to_hold(instances[route_hold_index], image, PathAPIConfig.triplet_model.preprocess, PathAPIConfig.device).unsqueeze(0)
+                    output1 = PathAPIConfig.triplet_model(input1)
+                    output2 = PathAPIConfig.triplet_model(input2)
+                dist = torch.nn.functional.pairwise_distance(output1, output2).square().item()
+                dists.append(dist)
+            if np.median(np.array(dists)) <= 0.7 and np.max(dists) <= 2.65:
+                # Current hold is similar to all holds in existing route => Adding it to that route
+                routes_dict[route_id].append(hold_index)
+                break
+        else:
+            # Current hold is not similar to any holds on existing routes => Add new route
+            routes_dict[max(routes_dict.keys()) + 1].append(hold_index)
+    print(routes_dict)
+
+
+
+def instance_to_hold(instance, img, transforms, device):
+    """
+    Crops masked hold from image, applies transforms, and transfers it to device
+
+    @param instance: Single detectron Instance
+    @param img: Image in BGR order
+    @param transforms: List of transformations to apply
+    @param device: Device of torch tensor
+    """
+    img_torch = torch.tensor(img).permute(2, 0, 1)
+    pred_mask = instance.pred_masks.cpu().squeeze().int().float()
+    box_coords = instance.pred_boxes.tensor.flatten().int()
+    masked_img = img_torch * pred_mask
+    hold = masked_img[:, box_coords[1] : box_coords[3], box_coords[0] : box_coords[2]]
+    hold = transforms(hold)
+    hold = hold.to(device)
+    return hold
