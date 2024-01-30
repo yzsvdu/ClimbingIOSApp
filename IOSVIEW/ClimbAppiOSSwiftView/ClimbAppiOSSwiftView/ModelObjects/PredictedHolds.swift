@@ -34,5 +34,5 @@ struct InstanceData: Codable, Identifiable {
 
 struct PredictedHolds: Codable {
     let instances: [InstanceData]
-    let folder_path: String  
+    let folder_path: String
 }

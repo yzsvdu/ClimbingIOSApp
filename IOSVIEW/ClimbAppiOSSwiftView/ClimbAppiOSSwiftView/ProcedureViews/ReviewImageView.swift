@@ -9,6 +9,7 @@ import SwiftUI
 import Alamofire
 
 struct ReviewImageView: View {
+    
 
     @State private var proccessedImage: Bool = false
     @State private var predictedHolds: PredictedHolds = PredictedHolds(instances: [], folder_path: "")
@@ -22,10 +23,15 @@ struct ReviewImageView: View {
         let uploadEndpoint = "http://localhost:8000/api/upload_image/"
 
         return try await withCheckedThrowingContinuation { continuation in
+            AF.sessionConfiguration.timeoutIntervalForRequest = 70
+            AF.sessionConfiguration.timeoutIntervalForResource = 70
+            
             AF.upload(multipartFormData: { multipartFormData in
+                
                 multipartFormData.append(imageData, withName: "image", fileName: "image.jpg", mimeType: "image/jpeg")
             }, to: uploadEndpoint, headers: ["X-CSRFToken": "ADD_CSRF_HERE_IN_FUTURE"])
             .responseDecodable(of: PredictedHolds.self) { response in
+                print(response)
                 switch response.result {
                 case .success(let predictedHolds):
                     continuation.resume(returning: predictedHolds)

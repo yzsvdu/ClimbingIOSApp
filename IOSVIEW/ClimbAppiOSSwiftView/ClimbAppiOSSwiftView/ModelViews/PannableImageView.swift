@@ -18,6 +18,8 @@ struct PannableImageView: View {
     let predictedHolds: PredictedHolds
     let predictedMasks: Masks
     
+    let startKey: String = "0"
+    
 
     var body: some View {
         ScrollView([.horizontal, .vertical], showsIndicators: false) {
