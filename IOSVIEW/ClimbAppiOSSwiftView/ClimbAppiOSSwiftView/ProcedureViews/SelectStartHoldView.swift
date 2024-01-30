@@ -31,6 +31,6 @@ struct SelectStartHoldView: View {
 
 struct UploadImageStepView_Previews: PreviewProvider {
     static var previews: some View {
-        SelectStartHoldView(image: UIImage(imageLiteralResourceName: "original_image"), predicatedHolds: PredictedHolds(instances: [], folder_path: ""), predictedMasks: Masks(masks: []))
+        SelectStartHoldView(image: UIImage(imageLiteralResourceName: "original_image"), predicatedHolds: PredictedHolds(instances: [], folder_path: "", routes: [:]), predictedMasks: Masks(masks: []))
     }
 }

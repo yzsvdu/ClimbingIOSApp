@@ -12,7 +12,7 @@ struct ReviewImageView: View {
     
 
     @State private var proccessedImage: Bool = false
-    @State private var predictedHolds: PredictedHolds = PredictedHolds(instances: [], folder_path: "")
+    @State private var predictedHolds: PredictedHolds = PredictedHolds(instances: [], folder_path: "", routes: [:])
     @State private var predictedMasks: Masks = Masks(masks: [])
 
     let image: UIImage
@@ -103,13 +103,14 @@ struct ReviewImageView: View {
 
         // Update the state with the processed images
         self.predictedHolds = predictedHolds
+        print(self.predictedHolds.routes)
         self.predictedMasks = predictedMasks
         self.proccessedImage = true
     }
     
     var body: some View {
         VStack(spacing:0){
-            PannableImageView(image: image, showMasks: true, showOverlay: false, predictedHolds: PredictedHolds(instances: [], folder_path: ""), predictedMasks: Masks(masks: []))
+            PannableImageView(image: image, showMasks: true, showOverlay: false, predictedHolds: PredictedHolds(instances: [], folder_path: "", routes: [:]), predictedMasks: Masks(masks: []))
         }.navigationBarItems(
             trailing: Button(action: {
                 Task {

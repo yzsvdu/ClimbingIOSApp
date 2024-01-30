@@ -1,7 +1,5 @@
- # views.py
-import json
+ # api.py
 import os
-
 import uuid
 
 from django.http import JsonResponse
@@ -9,9 +7,12 @@ from django.http import HttpResponseNotFound, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 import cv2
 import numpy as np
+from .utils.image_mask_segmentation import apply_mask_to_image
+from .utils.route_segmenter import get_routes
 from detectron2.utils.visualizer import Visualizer
 from .apps import PathAPIConfig
 from detectron2.data import MetadataCatalog
+
 
 @csrf_exempt
 def upload_image(request):
@@ -70,7 +71,11 @@ def upload_image(request):
             instance_data = {'box': box_data, 'mask_number': i}
             instances.append(instance_data)
 
-        response_data = {'instances': instances, 'folder_path': unique_folder_name}
+        cropped_holds_path = os.path.join(unique_folder_path, "cropped_holds")
+        apply_mask_to_image(original_image_path, masks_folder_path, cropped_holds_path)
+        routes = get_routes(cropped_holds_path)
+
+        response_data = {'instances': instances, 'folder_path': unique_folder_name, 'routes': routes}
         return JsonResponse(response_data)
 
     else:

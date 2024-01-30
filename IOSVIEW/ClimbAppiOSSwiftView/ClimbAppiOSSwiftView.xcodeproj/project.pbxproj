@@ -17,9 +17,9 @@
 		877055AE2B5CDCC2004992D7 /* ImageUploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 877055AD2B5CDCC2004992D7 /* ImageUploadView.swift */; };
 		879FB27D2B5CFF66002B2E62 /* ReviewImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879FB27C2B5CFF66002B2E62 /* ReviewImageView.swift */; };
 		879FB2802B5D03C5002B2E62 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 879FB27F2B5D03C5002B2E62 /* Alamofire */; };
-		879FB2832B5D03FD002B2E62 /* PredictedHolds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879FB2822B5D03FD002B2E62 /* PredictedHolds.swift */; };
 		879FB2872B5D4C55002B2E62 /* MaskUrls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879FB2862B5D4C55002B2E62 /* MaskUrls.swift */; };
 		879FB2892B5D5581002B2E62 /* Masks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879FB2882B5D5581002B2E62 /* Masks.swift */; };
+		87C396802B69C02400AF72F8 /* PredictedHolds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87C3967F2B69C02400AF72F8 /* PredictedHolds.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,9 +33,9 @@
 		877055A92B5CD575004992D7 /* PannableImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PannableImageView.swift; sourceTree = "<group>"; };
 		877055AD2B5CDCC2004992D7 /* ImageUploadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageUploadView.swift; sourceTree = "<group>"; };
 		879FB27C2B5CFF66002B2E62 /* ReviewImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewImageView.swift; sourceTree = "<group>"; };
-		879FB2822B5D03FD002B2E62 /* PredictedHolds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictedHolds.swift; sourceTree = "<group>"; };
 		879FB2862B5D4C55002B2E62 /* MaskUrls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MaskUrls.swift; sourceTree = "<group>"; };
 		879FB2882B5D5581002B2E62 /* Masks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Masks.swift; sourceTree = "<group>"; };
+		87C3967F2B69C02400AF72F8 /* PredictedHolds.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PredictedHolds.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -110,7 +110,7 @@
 		879FB2812B5D03ED002B2E62 /* ModelObjects */ = {
 			isa = PBXGroup;
 			children = (
-				879FB2822B5D03FD002B2E62 /* PredictedHolds.swift */,
+				87C3967F2B69C02400AF72F8 /* PredictedHolds.swift */,
 				879FB2862B5D4C55002B2E62 /* MaskUrls.swift */,
 				879FB2882B5D5581002B2E62 /* Masks.swift */,
 			);
@@ -199,10 +199,10 @@
 				877055992B5CD263004992D7 /* Persistence.swift in Sources */,
 				877055AE2B5CDCC2004992D7 /* ImageUploadView.swift in Sources */,
 				879FB2892B5D5581002B2E62 /* Masks.swift in Sources */,
-				879FB2832B5D03FD002B2E62 /* PredictedHolds.swift in Sources */,
 				879FB2872B5D4C55002B2E62 /* MaskUrls.swift in Sources */,
 				877055902B5CD263004992D7 /* ClimbAppiOSSwiftViewApp.swift in Sources */,
 				877055A32B5CD36D004992D7 /* SelectStartHoldView.swift in Sources */,
+				87C396802B69C02400AF72F8 /* PredictedHolds.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
