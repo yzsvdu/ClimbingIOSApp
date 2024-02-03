@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5AACD2502B6C38C4002C2DA2 /* SelectRouteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AACD24F2B6C38C4002C2DA2 /* SelectRouteView.swift */; };
 		877055902B5CD263004992D7 /* ClimbAppiOSSwiftViewApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8770558F2B5CD263004992D7 /* ClimbAppiOSSwiftViewApp.swift */; };
 		877055942B5CD263004992D7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 877055932B5CD263004992D7 /* Assets.xcassets */; };
 		877055972B5CD263004992D7 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 877055962B5CD263004992D7 /* Preview Assets.xcassets */; };
@@ -23,6 +24,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		5AACD24F2B6C38C4002C2DA2 /* SelectRouteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectRouteView.swift; sourceTree = "<group>"; };
 		8770558C2B5CD263004992D7 /* ClimbAppiOSSwiftView.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClimbAppiOSSwiftView.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8770558F2B5CD263004992D7 /* ClimbAppiOSSwiftViewApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClimbAppiOSSwiftViewApp.swift; sourceTree = "<group>"; };
 		877055932B5CD263004992D7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -93,6 +95,7 @@
 			isa = PBXGroup;
 			children = (
 				877055A22B5CD36D004992D7 /* SelectStartHoldView.swift */,
+				5AACD24F2B6C38C4002C2DA2 /* SelectRouteView.swift */,
 				877055AD2B5CDCC2004992D7 /* ImageUploadView.swift */,
 				879FB27C2B5CFF66002B2E62 /* ReviewImageView.swift */,
 			);
@@ -199,6 +202,7 @@
 				877055992B5CD263004992D7 /* Persistence.swift in Sources */,
 				877055AE2B5CDCC2004992D7 /* ImageUploadView.swift in Sources */,
 				879FB2892B5D5581002B2E62 /* Masks.swift in Sources */,
+				5AACD2502B6C38C4002C2DA2 /* SelectRouteView.swift in Sources */,
 				879FB2872B5D4C55002B2E62 /* MaskUrls.swift in Sources */,
 				877055902B5CD263004992D7 /* ClimbAppiOSSwiftViewApp.swift in Sources */,
 				877055A32B5CD36D004992D7 /* SelectStartHoldView.swift in Sources */,

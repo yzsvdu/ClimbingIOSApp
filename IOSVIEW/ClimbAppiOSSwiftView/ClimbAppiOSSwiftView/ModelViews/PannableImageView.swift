@@ -10,13 +10,21 @@ import SwiftUI
 
 struct PannableImageView: View {
     @State private var proccessedImage: Bool = false
-    @State private var startHolds: [Int] = []
+
+    // added by Ryan
+    // having a local variable to store predictedHolds.routes
+    @State private var allRockDivs: [String: [Int]] = [:]
     
+    @Binding var routeHolds: [Int] // this was created in SelectRouteView
+    @Binding var startHolds: [Int] // this was created in SelectStartHoldView
+    let allowSelectStartHolds: Bool
     let image: UIImage
     let showMasks: Bool
     let showOverlay: Bool
     let predictedHolds: PredictedHolds
     let predictedMasks: Masks
+    
+    
     
     let startKey: String = "0"
     
@@ -37,17 +45,48 @@ struct PannableImageView: View {
                     displayBoundingBoxes(instances: predictedHolds.instances)
                 }
             }
+            
+            
         }
         .padding(.top, 1)
         .preferredColorScheme(ColorScheme.dark)
+        .onAppear {
+            
+     
+       
+            if !allowSelectStartHolds {
+                // reset routeHolds
+                routeHolds.removeAll()
+                print("routeHolds initial: \(routeHolds)")
+                print("start holds initials: \(startHolds)")
+                // copy over the original route divs into allRockDivs
+                allRockDivs = predictedHolds.routes
+                // fill out the first couple holds given start hold
+                for sh in startHolds {
+                    for(_, holdIds) in allRockDivs {
+                        if holdIds.contains(sh) {
+                            for hold in holdIds {
+                                if !routeHolds.contains(hold) {
+                                    routeHolds.append(hold)
+                                }
+                            }
+                        }
+                    }
+                }
+                print("routeHolds after onAppear: \(routeHolds)")
+            }
+        }
     }
+    
     
     func displayMasks(masks: [Mask]) -> some View {
         ForEach(masks, id: \.id) { mask in
             Image(uiImage: overlayImage(image: image, mask: mask.image))
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .opacity(startHolds.contains(mask.id) ? 1 : 0.6)
+                .opacity(
+                    startHolds.contains(mask.id) || routeHolds.contains(mask.id) ? 1 : 0.6
+                )
         }
     }
     
@@ -63,14 +102,51 @@ struct PannableImageView: View {
                 .fill(Color.clear)
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    if let index = startHolds.firstIndex(of: instance.maskId) {
-                        startHolds.remove(at: index)
-                    } else {
-                        if startHolds.count == 2 {
-                            startHolds.removeFirst()
+                    if allowSelectStartHolds {
+                        // the user is selecting start holds not routes
+                        // checks if the user clicked the same start hold
+                        if let index = startHolds.firstIndex(of: instance.maskId) {
+                            startHolds.remove(at: index)
+                        } else {
+                            // check if the user clicked on a 3rd start hold
+                            if startHolds.count == 2 {
+                                startHolds.removeFirst()
+                            }
+                            // add this start hold to the startHolds array
+                            startHolds.append(instance.maskId)
                         }
-                        startHolds.append(instance.maskId)
+                        // print out the updated start holds
+                        print("current start holds: ")
+                        print(startHolds)
+                    } else {
+                        // the user is selecting routes not start holdes
+                        // make sure the user did not click the start hold
+                        if !startHolds.contains(instance.maskId) {
+                            // check if this hold is already in the routeHolds
+                            if routeHolds.contains(instance.maskId) {
+                                // the user wants to remove this hold from the routeHolds
+                                // should remove from the allRockDivs
+                                routeHolds.removeAll{ $0 == instance.maskId }
+                                for(loc, holdIds) in allRockDivs {
+                                    if holdIds.contains(instance.maskId) {
+                                        if var hids = allRockDivs[loc] {
+                                            hids.removeAll{ $0 == instance.maskId }
+                                            allRockDivs[loc] = hids
+                                        }
+                                        
+                                    }
+                                }
+                                print("current routeHolds: \(routeHolds)")
+                            } else {
+                                // this hold (and its neighbors) should be added to the routeHolds
+                                routeSelection(maskId: instance.maskId)
+                                // TODO: delete later!
+                                print("current routeHolds: \(routeHolds)")
+                            }
+                        }
+
                     }
+                    
                 }
                 .frame(
                     width: width,
@@ -80,6 +156,29 @@ struct PannableImageView: View {
                     x: instance.box.xMax + xOffset,
                     y: instance.box.yMax + yOffset
                 )
+        }
+    }
+    
+    /*
+     allows the user to select routes and automatically fills in
+     the next couple holds
+     */
+    func routeSelection(maskId: Int) {
+        // logic: if the user presses on a hold that is already lit, unhighlight that hold AND remove it from the allRockDivs
+        // need to work on sending the data to PannableImageView
+       
+        // iterate the PredictedHolds routes
+        for(_, holdIds) in predictedHolds.routes {
+            // check if the selected holds fits in the rock specific rock division
+            if holdIds.contains(maskId) {
+                print("rock: \(maskId) FOUND with neighbors: \(holdIds)")
+                // add this hold and all its neighbors to the routeHolds!
+                for hold in holdIds {
+                    if !routeHolds.contains(hold) {
+                        routeHolds.append(hold)
+                    }
+                }
+            }
         }
     }
     

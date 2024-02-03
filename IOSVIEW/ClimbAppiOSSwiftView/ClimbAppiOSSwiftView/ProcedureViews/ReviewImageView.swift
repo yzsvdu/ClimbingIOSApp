@@ -11,6 +11,8 @@ import Alamofire
 struct ReviewImageView: View {
     
 
+    
+
     @State private var proccessedImage: Bool = false
     @State private var predictedHolds: PredictedHolds = PredictedHolds(instances: [], folder_path: "", routes: [:])
     @State private var predictedMasks: Masks = Masks(masks: [])
@@ -31,7 +33,7 @@ struct ReviewImageView: View {
                 multipartFormData.append(imageData, withName: "image", fileName: "image.jpg", mimeType: "image/jpeg")
             }, to: uploadEndpoint, headers: ["X-CSRFToken": "ADD_CSRF_HERE_IN_FUTURE"])
             .responseDecodable(of: PredictedHolds.self) { response in
-                print(response)
+//                print(response)
                 switch response.result {
                 case .success(let predictedHolds):
                     continuation.resume(returning: predictedHolds)
@@ -103,6 +105,7 @@ struct ReviewImageView: View {
 
         // Update the state with the processed images
         self.predictedHolds = predictedHolds
+        print("Grouping holds together... File: \(URL(fileURLWithPath: #file).lastPathComponent), Line: \(#line)")
         print(self.predictedHolds.routes)
         self.predictedMasks = predictedMasks
         self.proccessedImage = true
@@ -110,7 +113,7 @@ struct ReviewImageView: View {
     
     var body: some View {
         VStack(spacing:0){
-            PannableImageView(image: image, showMasks: true, showOverlay: false, predictedHolds: PredictedHolds(instances: [], folder_path: "", routes: [:]), predictedMasks: Masks(masks: []))
+            PannableImageView(routeHolds: .constant([Int]()), startHolds: .constant([Int]()), allowSelectStartHolds: true, image: image, showMasks: true, showOverlay: false, predictedHolds: PredictedHolds(instances: [], folder_path: "", routes: [:]), predictedMasks: Masks(masks: []))
         }.navigationBarItems(
             trailing: Button(action: {
                 Task {
