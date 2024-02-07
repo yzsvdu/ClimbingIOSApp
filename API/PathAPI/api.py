@@ -12,6 +12,7 @@ from .utils.route_segmenter import get_routes
 from detectron2.utils.visualizer import Visualizer
 from .apps import PathAPIConfig
 from detectron2.data import MetadataCatalog
+import json
 
 
 @csrf_exempt
@@ -99,3 +100,15 @@ def get_single_mask(request):
             return HttpResponseNotFound('Mask not found')
     else:
         return HttpResponseNotFound('Folder path or mask number not provided in the request')
+
+@csrf_exempt
+def upload_route(request) :
+    if 'routeHolds' in request.POST:
+        # convert JSON string to python list
+        route_holds_json =  request.POST['routeHolds']
+        route_holds = json.loads(route_holds_json)
+        print("Received routeholds:", route_holds)
+
+        return JsonResponse({'message': 'Route holds received successfully'})
+    else:
+        return JsonResponse({'message': 'Route holds not provided in the request'}, status=400)
