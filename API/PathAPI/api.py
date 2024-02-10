@@ -13,6 +13,9 @@ from detectron2.utils.visualizer import Visualizer
 from .apps import PathAPIConfig
 from detectron2.data import MetadataCatalog
 import json
+from .utils.specific_route_solver import process_route
+
+instancesDict = {} # Dictionary to store the specific filtered_instance to user
 
 
 @csrf_exempt
@@ -35,7 +38,7 @@ def upload_image(request):
         img = cv2.imdecode(img_np, cv2.IMREAD_COLOR)
         outputs = PathAPIConfig.predictor(img)
         instances = outputs["instances"].to("cpu")
-
+        image_width, image_height, _ = img.shape
         # Filter out holds below 80% confidence
         confidence_threshold = 0.8
         selected_indices = instances.scores >= confidence_threshold
@@ -78,6 +81,12 @@ def upload_image(request):
         routes = get_routes(cropped_holds_path)
 
         response_data = {'instances': instances, 'folder_path': unique_folder_name, 'routes': routes}
+        print(f"storing instances into the instancesDict with key: {unique_folder_name}")
+        instancesDict[unique_folder_name] = {  # Stores these instances locally to the instancesDict dictionary
+            "instances": instances,
+            "image_width": image_width,
+            "image_height": image_height
+        }
         return JsonResponse(response_data)
 
     else:
@@ -106,12 +115,19 @@ def get_single_mask(request):
 
 @csrf_exempt
 def upload_route(request):
-    if 'routeHolds' in request.POST:
-        # convert JSON string to python list
-        route_holds_json = request.POST['routeHolds']
-        route_holds = json.loads(route_holds_json)
-        print("Received routeholds:", route_holds)
+    if 'data' in request.POST:
+        data_json = request.POST['data']
+        data = json.loads(data_json)
+        route_holds_list = data.get('routeHolds', [])
+        start_holds_list = data.get('startHolds', [])
+        fname = data.get('unique_file_name', "")
+        dictResult = instancesDict[fname]
+        instances = dictResult['instances'] # look for this fname in the instancesDict
+        image_width = dictResult['image_width']
+        image_height = dictResult['image_height']
 
+        filtered_instances = [entry for entry in instances if entry['mask_number'] in route_holds_list]
+        process_route(route_holds_list, start_holds_list, filtered_instances, image_width, image_height)
         return JsonResponse({'message': 'Route holds received successfully'})
     else:
         return JsonResponse({'message': 'Route holds not provided in the request'}, status=400)

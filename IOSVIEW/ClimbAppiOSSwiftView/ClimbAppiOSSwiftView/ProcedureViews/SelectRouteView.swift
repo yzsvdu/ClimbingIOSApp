@@ -48,7 +48,6 @@ struct SelectRouteView: View {
             }
             
         } else {
-            
             // add selected hold and matching holds to the route
             for(_, holdIds) in holdDivisions {
                 if holdIds.contains(visual.hold.id) {
@@ -61,8 +60,6 @@ struct SelectRouteView: View {
             }
         
         }
-            
-            
     }
     var body: some View {
         VStack {
@@ -72,11 +69,26 @@ struct SelectRouteView: View {
                 onTapGesture: self.handleTapGesture,
                 selectedHolds: self.selectedRouteHolds)
         }
+        .onAppear {
+            // add any neighbors of the start hold to the selectedRouteHolds array
+            for startHolds in selectedStartHolds {
+                for(_, holdIds) in holdDivisions {
+                    if holdIds.contains(startHolds) {
+                        for hold in holdIds {
+                            if !selectedRouteHolds.contains(hold) {
+                                selectedRouteHolds.append(hold)
+                            }
+                        }
+                    }
+                }
+            }
+        }
         .navigationTitle("Select Route Holds")
         .navigationBarItems(
             trailing: Button(action: {
                 Task {
                     do {
+                        
                         try await uploadRoute(routeHolds: selectedRouteHolds)
                     } catch {
                         print("Erorr: \(error)")
@@ -90,10 +102,17 @@ struct SelectRouteView: View {
         
     }
     
+    
+    struct RouteData: Encodable {
+        let routeHolds: [Int]
+        let startHolds: [Int]
+        let unique_file_name: String
+    }
+    
     func uploadRoute(routeHolds: [Int]) async throws {
         // specify the endpoint
         let uploadEndpoint = "http://localhost:8000/api/upload_route/"
-        let routeData = RouteData(routeHolds: routeHolds, fname: generatedData.folderPath)
+        let routeData = RouteData(routeHolds: selectedRouteHolds, startHolds: selectedStartHolds, unique_file_name: generatedData.folderPath) // data to send to API
         
         // convert routeHolds to JSON data
         let jsonEncoder = JSONEncoder()
@@ -110,7 +129,6 @@ struct SelectRouteView: View {
             to: uploadEndpoint,
             method: .post,
             headers: ["Content-Type": "multipart/form-data"]
-            
         ).responseDecodable(of: Dictionary<String, String>.self) { (response) in
             // Handle the result in the completion handler
             switch response.result {
@@ -122,6 +140,5 @@ struct SelectRouteView: View {
                 print("Error uploading route:", error)
             }
         }
-        
     }
 }
