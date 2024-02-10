@@ -16,41 +16,25 @@ struct SelectRouteView: View {
     let generatedData: GeneratedData
     let holdVisuals: [HoldVisual]
     
-    /// Initialize holdDivision to be mutable and selectedRoutes
     init(selectedStartHolds: [Int], generatedData: GeneratedData, holdVisuals: [HoldVisual]) {
         self.selectedStartHolds = selectedStartHolds
         self.generatedData = generatedData
         self.holdVisuals = holdVisuals
         
         
-        // Look for matching holds given starting holds
         _holdDivisions = State(initialValue: generatedData.holdDivisions)
-        var foundHolds: [Int] = []
-        let holdDivions: [String: [Int]] = generatedData.holdDivisions
-        for startHold in selectedStartHolds {
-            for(_, holdIds) in holdDivions {
-                if holdIds.contains(startHold) {
-                    for hold in holdIds {
-                        if !foundHolds.contains(hold) {
-                            foundHolds.append(hold)
-                        }
-                    }
-                }
-            }
-        }
-        
-        _selectedRouteHolds = State(initialValue: foundHolds)
+
+        _selectedRouteHolds = State(initialValue: selectedStartHolds)
         
      }
     
     
-    /// Tap Gesture Handler for Route View Selection
+    
     func handleTapGesture(visual: HoldVisual) -> Void {
         if selectedStartHolds.contains(visual.hold.id) {return}
         
         if selectedRouteHolds.contains(visual.hold.id) {
 
-            // Remove hold from current route and Hold Division
             selectedRouteHolds.removeAll{ $0 == visual.hold.id }
             for(divisionId, holdIds) in holdDivisions {
                 if holdIds.contains(visual.hold.id) {
@@ -65,7 +49,7 @@ struct SelectRouteView: View {
             
         } else {
             
-            // Add selected hold and matching holds to the route
+            // add selected hold and matching holds to the route
             for(_, holdIds) in holdDivisions {
                 if holdIds.contains(visual.hold.id) {
                     for holdId in holdIds {

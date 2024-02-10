@@ -12,7 +12,15 @@ struct PannableImageViewer: View {
     let holdVisuals: [HoldVisual]
     let onTapGesture: (HoldVisual) -> Void
     
+    @State private var animate: Bool = false
     var selectedHolds: [Int]
+    
+    init(uploadedData: GeneratedData, holdVisuals: [HoldVisual], onTapGesture: @escaping (HoldVisual) -> Void, selectedHolds: [Int]) {
+        self.uploadedData = uploadedData
+        self.holdVisuals = holdVisuals
+        self.onTapGesture = onTapGesture
+        self.selectedHolds = selectedHolds
+    }
     
     var body: some View {
         ScrollView([.horizontal, .vertical], showsIndicators: false) {
@@ -46,7 +54,16 @@ struct PannableImageViewer: View {
             .fill(Color.clear)
             .overlay(
                 Image(uiImage: visual.image)
-                    .opacity(selectedHolds.contains(visual.hold.id) ? 1 : 0.6)
+                    .opacity(animate && selectedHolds.contains(visual.hold.id) ? 1 : 0.6)
+                    .animation(
+                        selectedHolds.contains(visual.hold.id) ?
+                        Animation.easeInOut(duration: 0.3).repeatForever(autoreverses: true) :
+                            .default
+                    )
+                    .onAppear {
+                        animate = true
+                    }
+                
             )
             .frame(
                 width: visual.width,
