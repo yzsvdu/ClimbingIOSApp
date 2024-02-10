@@ -9,16 +9,37 @@ import SwiftUI
 
 struct SelectStartHoldView: View {
     // added by Ryan
-    @State private var startHolds: [Int] = []
-    @State private var startHoldsFilled: Bool = false
+    @State private var selectedStartHolds: [Int] = []
+    @State private var maxStartHolds: Int = 2
+    @State private var canProceed : Bool = false
+    
+    let generatedData: GeneratedData
+    let predictedMasks: [Mask]
+    let holdVisuals: [HoldVisual]
+
+    /// Tap Gesture Handler for Start Hold View
+    func handleTapGesture(visual: HoldVisual) -> Void {
+        if let index = selectedStartHolds.firstIndex(of: visual.hold.id) {
+            selectedStartHolds.remove(at: index)
             
-    let image: UIImage
-    let predicatedHolds: PredictedHolds
-    let predictedMasks: Masks
+        } else {
+            if selectedStartHolds.count == maxStartHolds {   // Adds a maximum of 2 holds in the start holds array
+                selectedStartHolds.removeFirst()
+            }
+            selectedStartHolds.append(visual.hold.id)
+            
+      }
+}
     
     var body: some View {
         VStack {
-            PannableImageView(routeHolds: .constant([Int]()), startHolds: $startHolds, allowSelectStartHolds: true, image: image, showMasks: true, showOverlay: true, predictedHolds: predicatedHolds, predictedMasks: predictedMasks)
+            PannableImageViewer(
+                uploadedData: self.generatedData,       // Pass in information like original image and folder path
+                holdVisuals: self.holdVisuals,          // Pass in hold visuals to display
+                onTapGesture: self.handleTapGesture,    // Pass in tap gesture for select start hold instance
+                selectedHolds: selectedStartHolds       // Pass in start hold array to be filled
+            )
+            
         }
         .navigationTitle("Select Starting Holds")
         .navigationBarItems(
@@ -34,8 +55,11 @@ struct SelectStartHoldView: View {
                 Text("Next")
             }
         )
-        .navigationDestination(isPresented: $startHoldsFilled) {
-            SelectRouteView(startHolds: $startHolds, image: image, predicatedHolds: self.predicatedHolds, predictedMasks: self.predictedMasks)
+        .navigationDestination(isPresented: $canProceed) {
+            SelectRouteView(
+                selectedStartHolds: selectedStartHolds,         // include startholds
+                generatedData: generatedData,                   // keep passing the folder name and original image
+                holdVisuals: holdVisuals)                       // keep passing the hold visuals
         }
       
     }
@@ -44,19 +68,12 @@ struct SelectStartHoldView: View {
      checks if there is at least one start hold and then navigates to the selectRouteView
      */
     func onNextButtonPressed() async throws {
-        print("PRESSED THE NEXT BUTTON... File: \(URL(fileURLWithPath: #file).lastPathComponent), Line: \(#line)")
-        print("START HOLDS: \(startHolds)")
-        
-        // check if the startHolds array is empty
-        if(startHolds.isEmpty) {
-            // user error: start holds are empty!
-            print("Start holds are empty")
+        if(selectedStartHolds.isEmpty) {
             // TODO: have a pop up alert telling the user to select the start hold
+            
         } else {
-            // at least one start hold is selected
-            print("Ready to move on to the SelectRouteView")
-            // transition to the SelectRouteView
-            self.startHoldsFilled = true
+            self.canProceed = true
+            
         }
 
     }

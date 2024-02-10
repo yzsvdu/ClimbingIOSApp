@@ -6,114 +6,22 @@
 //
 
 import SwiftUI
-import Alamofire
 
 struct ReviewImageView: View {
     
-
-    
-
     @State private var proccessedImage: Bool = false
-    @State private var predictedHolds: PredictedHolds = PredictedHolds(instances: [], folder_path: "", routes: [:])
-    @State private var predictedMasks: Masks = Masks(masks: [])
-
-    let image: UIImage
+    @State private var retrievedMasks: [Mask] = []
+    @State private var detectedHolds: DetectedHolds = DetectedHolds()
+    @State private var holdVisuals: [HoldVisual] = []
+    @State private var generatedData: GeneratedData = GeneratedData()
     
-    
-    
-    func uploadImage(imageData: Data) async throws -> PredictedHolds {
-        let uploadEndpoint = "http://localhost:8000/api/upload_image/"
-
-        return try await withCheckedThrowingContinuation { continuation in
-            AF.sessionConfiguration.timeoutIntervalForRequest = 70
-            AF.sessionConfiguration.timeoutIntervalForResource = 70
-            
-            AF.upload(multipartFormData: { multipartFormData in
-                
-                multipartFormData.append(imageData, withName: "image", fileName: "image.jpg", mimeType: "image/jpeg")
-            }, to: uploadEndpoint, headers: ["X-CSRFToken": "ADD_CSRF_HERE_IN_FUTURE"])
-            .responseDecodable(of: PredictedHolds.self) { response in
-//                print(response)
-                switch response.result {
-                case .success(let predictedHolds):
-                    continuation.resume(returning: predictedHolds)
-                case .failure(let error):
-                    continuation.resume(throwing: error)
-                }
-            }
-        }
-    }
-    
-    func retrieveMaskUrls(folder_path: String) async throws -> MaskURLs {
-        let maskUrlsEndpoint = "http://localhost:8000/api/get_masks_urls/?folder_path=\(folder_path)"
-        
-        return try await withCheckedThrowingContinuation { continuation in
-            AF.request(maskUrlsEndpoint)
-                .responseDecodable(of: MaskURLs.self) { response in
-                    switch response.result {
-                    case .success(let maskUrls):
-                        continuation.resume(returning: maskUrls)
-                    case .failure(let error):
-                        continuation.resume(throwing: error)
-                    }
-                }
-        }
-    }
-
-    
-    func retrieveMaskFromUrl(folder_path: String, mask_id: Int) async throws -> UIImage {
-        let maskEndpoint = "http://localhost:8000/api/get_mask/?folder_path=\(folder_path)&mask_number=\(mask_id)"
-        
-        return try await withCheckedThrowingContinuation { continuation in
-            AF.download(maskEndpoint)
-                .responseData { response in
-                    switch response.result {
-                    case .success(let data):
-                        if let image = UIImage(data: data) {
-                            continuation.resume(returning: image)
-                        }
-                    case .failure(let error):
-                        continuation.resume(throwing: error)
-                    }
-                }
-        }
-    }
-    
-    
-    func retrieveAllMasks(predictedHolds: PredictedHolds) async throws -> Masks {
-        var retrievedMasks: [Mask] = []
-
-        for (index, instance) in predictedHolds.instances.enumerated() {
-            do {
-                let maskImage = try await retrieveMaskFromUrl(folder_path: predictedHolds.folder_path, mask_id: instance.maskId)
-                retrievedMasks.append(Mask(id: instance.maskId, image: maskImage))
-            } catch {
-                print("Error retrieving mask for index \(index): \(error)")
-            }
-        }
-
-        return Masks(masks: retrievedMasks)
-    }
-    
-    func processImage() async throws {
-        guard let imageData = image.jpegData(compressionQuality: 1) else {
-               print("Error converting image to data")
-               return
-        }
-        let predictedHolds = try await uploadImage(imageData: imageData)
-        let predictedMasks = try await retrieveAllMasks(predictedHolds: predictedHolds)
-
-        // Update the state with the processed images
-        self.predictedHolds = predictedHolds
-        print("Grouping holds together... File: \(URL(fileURLWithPath: #file).lastPathComponent), Line: \(#line)")
-        print(self.predictedHolds.routes)
-        self.predictedMasks = predictedMasks
-        self.proccessedImage = true
-    }
+    let displayImage: UIImage
     
     var body: some View {
-        VStack(spacing:0){
-            PannableImageView(routeHolds: .constant([Int]()), startHolds: .constant([Int]()), allowSelectStartHolds: true, image: image, showMasks: true, showOverlay: false, predictedHolds: PredictedHolds(instances: [], folder_path: "", routes: [:]), predictedMasks: Masks(masks: []))
+        ScrollView([.horizontal, .vertical], showsIndicators: false) {
+            ZStack {
+                Image(uiImage: displayImage);
+            }
         }.navigationBarItems(
             trailing: Button(action: {
                 Task {
@@ -126,16 +34,64 @@ struct ReviewImageView: View {
             }) {
                 Text("Process")
             }
+            
         )
         .navigationDestination(isPresented: $proccessedImage) {
-            SelectStartHoldView(image: image, predicatedHolds: self.predictedHolds, predictedMasks: self.predictedMasks)
+            SelectStartHoldView(
+                generatedData: self.generatedData,
+                predictedMasks: self.retrievedMasks,
+                holdVisuals: self.holdVisuals)
         }
         .navigationTitle("Review")
     }
+    
+    /// Uploads the image to the API and saves Results
+    func processImage() async throws {
+        guard let imageData = displayImage.jpegData(compressionQuality: 1) else {
+            print("Error converting image to data")
+            return
+        }
+        
+        let detectedHolds = try await uploadImage(imageData: imageData)
+        let retrievedMasks = try await retrieveAllMasks(detectedHolds: detectedHolds)
+        
+        self.detectedHolds = detectedHolds
+        self.retrievedMasks = retrievedMasks
+        
+        
+        // Generates cropped images of the holds from the binary masks
+        var holdVisuals: [HoldVisual] = []
+        
+        for (mask, instance) in zip(retrievedMasks, detectedHolds.instances) {
+            let holdOverlay: UIImage = overlayImage(image: displayImage, mask: mask.image)
+            
+            let width = CGFloat(instance.box.xMax - instance.box.xMin)
+            let height = CGFloat(instance.box.yMax - instance.box.yMin)
+            
+            let xOffset = -CGFloat(displayImage.size.width / 2 + width / 2)
+            let yOffset = -CGFloat(displayImage.size.height / 2 + height / 2)
+            
+            let cropRect = CGRect(x: instance.box.xMin, y: instance.box.yMin, width: width, height: height)
+            
+            let cgImage = holdOverlay.cgImage?.cropping(to: cropRect)
+            let croppedImage = UIImage(cgImage: cgImage!)
+            
+            holdVisuals.append(HoldVisual(hold: instance, image: croppedImage, width: width, height: height, xOffset: xOffset, yOffset: yOffset))
+            
+        }
+        
+        self.holdVisuals = holdVisuals
+        
+        // Generated Data to hold important data like folder path name
+        self.generatedData = GeneratedData(image: displayImage, folderPath: detectedHolds.folder_path, holdDivisions: detectedHolds.routes)
+        
+        self.proccessedImage = true
+    }
+
 }
 
 struct ReviewImageView_Previews: PreviewProvider {
     static var previews: some View {
-        ReviewImageView(image: UIImage(imageLiteralResourceName: "IMG_3502"))
+        ReviewImageView(displayImage: UIImage(imageLiteralResourceName: "original_image"))
     }
 }

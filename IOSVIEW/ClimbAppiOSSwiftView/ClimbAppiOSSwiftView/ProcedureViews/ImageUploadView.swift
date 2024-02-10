@@ -81,7 +81,7 @@ struct ImagePickerView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .navigationTitle("Upload")
         .navigationDestination(isPresented: $isPreviewImagePresented) {
-            ReviewImageView(image: selectedImage ?? UIImage())
+            ReviewImageView(displayImage: selectedImage ?? UIImage())
         }
         .preferredColorScheme(ColorScheme.dark)
     }

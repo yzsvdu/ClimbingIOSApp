@@ -68,3 +68,4 @@ urllib3==2.1.0
 Werkzeug==3.0.1
 yacs==0.1.8
 zipp==3.17.0
+git+https://github.com/facebookresearch/detectron2.git

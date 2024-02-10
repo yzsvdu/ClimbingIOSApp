@@ -7,12 +7,12 @@
 
 
 import Foundation
-
-struct MaskURLs: Codable {
-    let maskURLs: [String]
-
-    enum CodingKeys: String, CodingKey {
-        case maskURLs = "urls"
-    }
-}
+//
+//struct MaskURLs: Codable {
+//    let maskURLs: [String]
+//
+//    enum CodingKeys: String, CodingKey {
+//        case maskURLs = "urls"
+//    }
+//}
 

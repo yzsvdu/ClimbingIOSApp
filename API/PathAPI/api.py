@@ -1,4 +1,4 @@
- # api.py
+# api.py
 import os
 import uuid
 
@@ -68,7 +68,8 @@ def upload_image(request):
             mask_file_path = os.path.join(masks_folder_path, f"binary_mask_{i}.png")
             cv2.imwrite(mask_file_path, binary_mask.astype(np.uint8) * 255)
 
-            box_data = {key: float(value) for key, value in zip(['x_min', 'y_min', 'x_max', 'y_max'], filtered_instances.pred_boxes.tensor.numpy()[i])}
+            box_data = {key: float(value) for key, value in
+                        zip(['x_min', 'y_min', 'x_max', 'y_max'], filtered_instances.pred_boxes.tensor.numpy()[i])}
             instance_data = {'box': box_data, 'mask_number': i}
             instances.append(instance_data)
 
@@ -81,6 +82,7 @@ def upload_image(request):
 
     else:
         return JsonResponse({'message': 'Invalid request method or no image provided'}, status=400)
+
 
 def get_single_mask(request):
     folder_path = request.GET.get('folder_path', None)
@@ -101,11 +103,12 @@ def get_single_mask(request):
     else:
         return HttpResponseNotFound('Folder path or mask number not provided in the request')
 
+
 @csrf_exempt
-def upload_route(request) :
+def upload_route(request):
     if 'routeHolds' in request.POST:
         # convert JSON string to python list
-        route_holds_json =  request.POST['routeHolds']
+        route_holds_json = request.POST['routeHolds']
         route_holds = json.loads(route_holds_json)
         print("Received routeholds:", route_holds)
 
